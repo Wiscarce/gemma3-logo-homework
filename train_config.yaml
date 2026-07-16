@@ -17,19 +17,19 @@
 # ============================================================================
 
 # ---- 模型 ----
-model: ./gemma3-270m
+model: /content/gemma3-270m
 # 国内 ModelScope 路径（下载更快）:
 # model: LLM-Research/gemma-3-270m-it
 # 本地路径:
-# model: /path/to/gemma3-270m
+# model: /content/gemma3-270m
 
 # ---- 数据 ----
-dataset: logo-detailed-prompt/train.jsonl
-val_dataset: logo-detailed-prompt/valid.jsonl
+dataset: /content/logo-detailed-prompt/train.jsonl
+val_dataset: /content/logo-detailed-prompt/valid.jsonl
 # ms-swift 会自动识别 {"messages": [...]} chat 格式
 # assistant 部分的 loss 由框架自动处理，无需额外配置
 
-max_length: 4096
+max_length: 1024
 truncation_strategy: right
 
 # ---- LoRA ----
@@ -53,11 +53,11 @@ weight_decay: 0.01
 max_grad_norm: 1.0
 
 # ---- 精度 (T4/V100 用 fp16, A100/4090 用 bf16) ----
-bf16: true
-fp16: false
+bf16: false
+fp16: true
 
 # ---- 保存 & 日志 ----
-output_dir: ./output
+output_dir: /content/output
 logging_steps: 10
 save_steps: 50
 eval_steps: 50
@@ -65,7 +65,7 @@ save_total_limit: 3
 
 # ---- 评估期间生成参数 ----
 predict_with_generate: true
-max_new_tokens: 4096
+max_new_tokens: 1024
 temperature: 0.7
 top_p: 0.9
 do_sample: true
