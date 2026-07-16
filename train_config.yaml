@@ -1,0 +1,75 @@
+# ============================================================================
+# LoRA SFT 训练: Gemma 3 270M → SVG Logo 生成
+# 框架: ms-swift (ModelScope SWIFT)
+#
+# 用法:
+#   swift sft --config student_kit/train_config.yaml
+#
+# 或直接用命令行:
+#   swift sft \
+#     --model google/gemma-3-270m-it \
+#     --dataset logo-detailed-prompt/train.jsonl \
+#     --val_dataset logo-detailed-prompt/valid.jsonl \
+#     --lora_rank 16 --lora_alpha 32 --lora_dropout 0.05 \
+#     --learning_rate 2e-4 --num_train_epochs 5 \
+#     --per_device_train_batch_size 2 --gradient_accumulation_steps 4 \
+#     --max_length 4096 --output_dir ./output/gemma3-svg-lora
+# ============================================================================
+
+# ---- 模型 ----
+model: google/gemma-3-270m-it
+# 国内 ModelScope 路径（下载更快）:
+# model: LLM-Research/gemma-3-270m-it
+# 本地路径:
+# model: /path/to/gemma3-270m
+
+# ---- 数据 ----
+dataset: logo-detailed-prompt/train.jsonl
+val_dataset: logo-detailed-prompt/valid.jsonl
+# ms-swift 会自动识别 {"messages": [...]} chat 格式
+# assistant 部分的 loss 由框架自动处理，无需额外配置
+
+max_length: 4096
+truncation_strategy: right
+
+# ---- LoRA ----
+lora_rank: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: all-linear
+
+# ---- 训练 ----
+learning_rate: 2.0e-4
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+num_train_epochs: 5
+per_device_train_batch_size: 2
+per_device_eval_batch_size: 2
+gradient_accumulation_steps: 4
+
+# ---- 优化器 ----
+optim: adamw_torch
+weight_decay: 0.01
+max_grad_norm: 1.0
+
+# ---- 精度 (T4/V100 用 fp16, A100/4090 用 bf16) ----
+bf16: true
+fp16: false
+
+# ---- 保存 & 日志 ----
+output_dir: ./output/gemma3-svg-lora
+logging_steps: 10
+save_steps: 50
+eval_steps: 50
+save_total_limit: 3
+
+# ---- 评估期间生成参数 ----
+predict_with_generate: true
+max_new_tokens: 4096
+temperature: 0.7
+top_p: 0.9
+do_sample: true
+
+# ---- 其他 ----
+seed: 42
+dataloader_num_workers: 2
