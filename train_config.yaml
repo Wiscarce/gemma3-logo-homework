@@ -1,77 +1,33 @@
-# ============================================================================
-# LoRA SFT 训练: Gemma 3 270M → SVG Logo 生成
-# 框架: ms-swift 4.4.1
-#
-# 用法:
-#   swift sft --config gemma3-logo-homework/train_config.yaml
-#
-# ms-swift 4.4.1 关键变更 (相比旧版):
-#   - target_modules 替代 lora_target_modules
-#   - lora_dropout_p 替代 lora_dropout
-#   - train_type: lora  显式声明训练类型
-#   - torch_dtype 替代 bf16/fp16
-#   - chat 格式 JSONL 自动 loss mask (仅 assistant token 计算 loss)
-# ============================================================================
-
-# ---- 模型 ----
 model: /content/gemma3-270m
-# 国内 ModelScope 路径:
-# model: LLM-Research/gemma-3-270m-it
-
-# ---- 训练类型 ----
-train_type: lora                     # ms-swift 4.4.1 显式声明
-
-# ---- 数据 ----
+train_type: lora
 dataset: /content/logo-detailed-prompt/train.jsonl
 val_dataset: /content/logo-detailed-prompt/valid.jsonl
-# chat 格式 {"messages": [...]} 自动识别
-# loss 自动只计算 assistant 回复部分, 无需额外配置
-
-max_length: 4096                     # SVG 最长 ~5300 字符, token 化约 1:1
+max_length: 4096
 truncation_strategy: right
-
-# ---- LoRA (ms-swift 4.4.1 参数名) ----
 lora_rank: 16
 lora_alpha: 32
-lora_dropout_p: 0.05                 # 4.4.1: 原名 lora_dropout
-target_modules: all-linear           # 4.4.1: 原名 lora_target_modules
-# 可选 LoRA 变体:
-# use_dora: true                     # DoRA 加速收敛
-# train_type: qlora                  # 显存紧张时用 QLoRA
-# quantization_bit: 4
-
-# ---- 训练超参 ----
+lora_dropout_p: 0.05
+target_modules: all-linear
 learning_rate: 2.0e-4
 lr_scheduler_type: cosine
 warmup_ratio: 0.05
 num_train_epochs: 5
 per_device_train_batch_size: 2
 per_device_eval_batch_size: 2
-gradient_accumulation_steps: 4       # 有效 batch = 2 × 4 = 8
-
-# ---- 优化器 ----
+gradient_accumulation_steps: 4
 optim: adamw_torch
 weight_decay: 0.01
 max_grad_norm: 1.0
-
-# ---- 精度 (4.4.1: 用 torch_dtype, 不再用 bf16/fp16 布尔) ----
-torch_dtype: bfloat16                # A100/4090 用 bfloat16
-# torch_dtype: float16               # T4/V100 用 float16
-
-# ---- 保存 & 日志 ----
+torch_dtype: bfloat16
 output_dir: /content/output
 logging_steps: 10
 save_steps: 50
 eval_steps: 50
 save_total_limit: 3
-
-# ---- 评估期间生成参数 ----
 predict_with_generate: true
-max_new_tokens: 4096                 # 生成 SVG 需要足够长度
+max_new_tokens: 4096
 temperature: 0.7
 top_p: 0.9
 do_sample: true
-
-# ---- 其他 ----
 seed: 42
 dataloader_num_workers: 2
