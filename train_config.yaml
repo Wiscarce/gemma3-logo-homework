@@ -3,7 +3,7 @@
 # 框架: ms-swift (ModelScope SWIFT)
 #
 # 用法:
-#   swift sft --config student_kit/train_config.yaml
+#   swift sft --config gemma3-logo-homework/train_config.yaml
 #
 # 或直接用命令行:
 #   swift sft \
@@ -17,7 +17,7 @@
 # ============================================================================
 
 # ---- 模型 ----
-model: google/gemma-3-270m-it
+model: ./gemma3-270m
 # 国内 ModelScope 路径（下载更快）:
 # model: LLM-Research/gemma-3-270m-it
 # 本地路径:
@@ -57,7 +57,7 @@ bf16: true
 fp16: false
 
 # ---- 保存 & 日志 ----
-output_dir: ./output/gemma3-svg-lora
+output_dir: ./output
 logging_steps: 10
 save_steps: 50
 eval_steps: 50
