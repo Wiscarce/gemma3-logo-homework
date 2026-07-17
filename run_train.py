@@ -48,8 +48,7 @@ def build_args() -> SftArguments:
         max_grad_norm=1.0,
 
         # ---- 精度: T4 只支持 fp16, 不支持 bf16 ----
-        # transformers 5.x: torch_dtype → dtype
-        dtype="float16",
+        torch_dtype="float16",
 
         # ---- 保存 & 日志 ----
         output_dir="/content/output",
