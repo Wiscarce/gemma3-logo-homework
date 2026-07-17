@@ -30,7 +30,7 @@ def build_args() -> SftArguments:
         # ---- LoRA ----
         lora_rank=16,
         lora_alpha=32,
-        lora_dropout_p=0.05,
+        lora_dropout=0.05,
         target_modules="all-linear",
 
         # ---- 训练超参 (T4 15GB 适配) ----

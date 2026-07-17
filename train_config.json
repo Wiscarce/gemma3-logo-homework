@@ -7,7 +7,7 @@
   "truncation_strategy": "right",
   "lora_rank": 16,
   "lora_alpha": 32,
-  "lora_dropout_p": 0.05,
+  "lora_dropout": 0.05,
   "target_modules": "all-linear",
   "learning_rate": 2e-4,
   "lr_scheduler_type": "cosine",
