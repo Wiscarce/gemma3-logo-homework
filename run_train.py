@@ -21,7 +21,7 @@ def build_args() -> SftArguments:
     return SftArguments(
         # ---- 模型与数据 ----
         model="/content/gemma3-270m",
-        train_type="lora",
+        tuner_type="lora",
         dataset="/content/logo-detailed-prompt/train.jsonl",
         val_dataset="/content/logo-detailed-prompt/valid.jsonl",
         max_length=4096,
