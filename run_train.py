@@ -62,7 +62,6 @@ def build_args() -> SftArguments:
         max_new_tokens=4096,
         temperature=0.7,
         top_p=0.9,
-        do_sample=True,
 
         # ---- 其他 ----
         seed=42,
