@@ -22,8 +22,8 @@ def build_args() -> SftArguments:
         # ---- 模型与数据 ----
         model="/content/gemma3-270m",
         tuner_type="lora",
-        dataset="/content/logo-detailed-prompt/train.jsonl",
-        val_dataset="/content/logo-detailed-prompt/valid.jsonl",
+        dataset="/content/logo-detailed-prompt/train_flat.jsonl",
+        val_dataset="/content/logo-detailed-prompt/valid_flat.jsonl",
         max_length=4096,
         truncation_strategy="right",
 
