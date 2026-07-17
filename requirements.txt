@@ -1,0 +1,9 @@
+# SVG Logo Generation — Gemma 3 270M LoRA SFT
+# 仅列核心依赖，完整环境快照见 env_info.txt
+ms-swift==4.4.1
+transformers==5.12.1
+peft==0.19.1
+datasets==3.1.0
+accelerate==1.14.0
+torch==2.11.0+cu128
+torchao>=0.16.0

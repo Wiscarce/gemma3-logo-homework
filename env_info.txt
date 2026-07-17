@@ -1,92 +1,77 @@
+===== 训练环境快照 / Training Environment Snapshot =====
+采集时间: 2026-07-17
+作业: 研究生课程《大语言模型数学》Part B — LoRA 微调 Gemma 3 270M 生成 SVG Logo
+
 ===== Python =====
 Python 3.12.13
+
 ===== OS =====
 PRETTY_NAME="Ubuntu 22.04.5 LTS"
-NAME="Ubuntu"
-VERSION_ID="22.04"
 VERSION="22.04.5 LTS (Jammy Jellyfish)"
-VERSION_CODENAME=jammy
-ID=ubuntu
-ID_LIKE=debian
-HOME_URL="https://www.ubuntu.com/"
-SUPPORT_URL="https://help.ubuntu.com/"
-BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
-PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
-UBUNTU_CODENAME=jammy
-===== GPU =====
-Fri Jul 17 03:29:45 2026       
-+-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 580.82.07              Driver Version: 580.82.07      CUDA Version: 13.0     |
-+-----------------------------------------+------------------------+----------------------+
-| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
-| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
-|                                         |                        |               MIG M. |
-|=========================================+========================+======================|
-|   0  Tesla T4                       Off |   00000000:00:04.0 Off |                    0 |
-| N/A   39C    P8             10W /   70W |       3MiB /  15360MiB |      0%      Default |
-|                                         |                        |                  N/A |
-+-----------------------------------------+------------------------+----------------------+
 
-+-----------------------------------------------------------------------------------------+
-| Processes:                                                                              |
-|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
-|        ID   ID                                                               Usage      |
-|=========================================================================================|
-|  No running processes found                                                             |
-+-----------------------------------------------------------------------------------------+
-===== Torch =====
-2.11.0+cu128
-12.8
-True
-Tesla T4
-===== Packages =====
-Name: transformers
-Version: 5.12.1
-Summary: Transformers: the model-definition framework for state-of-the-art machine learning models in text, vision, audio, and multimodal models, for both inference and training.
-Home-page: https://github.com/huggingface/transformers
-Author: The Hugging Face team (past and future) with the help of all our contributors (https://github.com/huggingface/transformers/graphs/contributors)
-Author-email: transformers@huggingface.co
-License: Apache 2.0 License
-Location: /usr/local/lib/python3.12/dist-packages
-Requires: huggingface-hub, numpy, packaging, pyyaml, regex, safetensors, tokenizers, tqdm, typer
-Required-by: ms_swift, peft, sentence-transformers, transformers-stream-generator, trl
-Name: peft
-Version: 0.19.1
-Summary: Parameter-Efficient Fine-Tuning (PEFT)
-Home-page: https://github.com/huggingface/peft
-Author: The HuggingFace team
-Author-email: benjamin@huggingface.co
-License: Apache
-Location: /usr/local/lib/python3.12/dist-packages
-Requires: accelerate, huggingface_hub, numpy, packaging, psutil, pyyaml, safetensors, torch, tqdm, transformers
-Required-by: ms_swift
-Name: ms_swift
-Version: 4.4.1
-Summary: Swift: Scalable lightWeight Infrastructure for Fine-Tuning
-Home-page: https://github.com/modelscope/ms-swift
-Author: DAMO ModelScope teams
-Author-email: contact@modelscope.cn
-License: Apache License 2.0
-Location: /usr/local/lib/python3.12/dist-packages
-Requires: accelerate, addict, aiohttp, attrdict, binpacking, charset-normalizer, cpm-kernels, dacite, datasets, einops, fastapi, gradio, importlib-metadata, json-repair, matplotlib, modelscope, nltk, numpy, openai, oss2, pandas, peft, pillow, PyYAML, requests, rouge, safetensors, scipy, sentencepiece, simplejson, sortedcontainers, tensorboard, tiktoken, tqdm, transformers, transformers-stream-generator, trl, uvicorn, zstandard
-Required-by: 
-Name: datasets
-Version: 4.0.0
-Summary: HuggingFace community-driven open-source library of datasets
-Home-page: https://github.com/huggingface/datasets
-Author: HuggingFace Inc.
-Author-email: thomas@huggingface.co
-License: Apache 2.0
-Location: /usr/local/lib/python3.12/dist-packages
-Requires: dill, filelock, fsspec, huggingface-hub, multiprocess, numpy, packaging, pandas, pyarrow, pyyaml, requests, tqdm, xxhash
-Required-by: ms_swift, torchtune, trl
-Name: accelerate
-Version: 1.14.0
-Summary: Accelerate
-Home-page: https://github.com/huggingface/accelerate
-Author: The Hugging Face team
-Author-email: transformers@huggingface.co
-License: Apache
-Location: /usr/local/lib/python3.12/dist-packages
-Requires: huggingface_hub, numpy, packaging, psutil, pyyaml, safetensors, torch
-Required-by: ms_swift, peft, trl
+===== GPU =====
+NVIDIA-SMI 580.82.07 / Driver 580.82.07 / CUDA 13.0
+GPU: Tesla T4 (15,360 MiB)  — Compute Capability 7.5, fp16 only (no bf16)
+
+===== PyTorch =====
+torch 2.11.0+cu128
+CUDA runtime: 12.8
+GPU available: True
+
+===== 核心包 / Core Packages (resolved versions) =====
+ms-swift         4.4.1    — LoRA SFT 框架
+transformers     5.12.1   — 模型加载 (deprecation: torch_dtype→dtype, warmup_ratio→warmup_steps)
+peft             0.19.1   — LoRA adapter 管理
+accelerate       1.14.0   — 分布式/混合精度训练
+datasets         3.1.0    — ⚠️ 原始环境 4.0.0 → 降级至 3.1.0 (4.x 移除 datasets.features.Json/List;
+                           3.6.0 将 List 改名为 LargeList; 3.0.1 兼容性最佳)
+torchao          0.16.0+  — peft 0.19.1 要求 ≥0.16.0 (原始环境 0.10.0 → 升级)
+tokenizers       (随 transformers)
+safetensors      (随 transformers)
+
+===== 版本冲突解决记录 / Version Conflict Resolutions =====
+1. datasets 4.0.0 → 3.1.0:
+   错误: ImportError: cannot import name 'Json' from 'datasets.features'
+   原因: datasets 4.x 移除了 Json 特征类型，ms-swift 4.4.1 仍依赖旧 API
+   尝试: 3.6.0 (List→LargeList), 3.0.1 (dataclass error)
+   解决: datasets==3.1.0
+
+2. torchao 0.10.0 → ≥0.16.0:
+   错误: ImportError: Found an incompatible version of torchao. Found 0.10.0,
+         but only versions above 0.16.0 are supported
+   解决: pip install "torchao>=0.16.0"
+
+3. ms-swift --config YAML 解析失败:
+   错误: model: None (YAML 配置未生效)
+   原因: ms-swift 4.4.1 + HfArgumentParser + PyYAML 组合存在解析 bug
+   解决: 使用 train_config.json (JSON 格式) 或 run_train.py (Python API)
+
+4. T4 训练 eval 阶段 OOM:
+   现象: 训练在 step 50/140 (36%) 中断
+   原因: save_steps=50 与 eval_steps=50 同时触发，predict_with_generate=True 时生成 4096 token SVG 撑爆 15GB 显存
+   解决: eval_steps 提升至 200 (越过训练总步数)，训练结束后统一 eval
+
+===== ms-swift 4.4.1 参数变更记录 =====
+train_type       → tuner_type     (3.x → 4.x 改名，默认 lora 可省略)
+lora_dropout_p   → lora_dropout   (4.4.1 无 _p 后缀)
+lora_target_modules → target_modules
+bf16 / fp16      → torch_dtype    (T4 仅支持 "float16")
+do_sample        → (不存在，temperature>0 自动启用采样)
+
+===== 训练配置摘要 =====
+模型: google/gemma-3-270m-it (本地: /content/gemma3-270m)
+数据: /content/logo-detailed-prompt/train.jsonl (219) + valid.jsonl (17)
+     实际使用 train_flat.jsonl / valid_flat.jsonl (chat→flat 格式转换)
+LoRA: rank=16, alpha=32, dropout=0.05, target_modules=all-linear
+学习率: 2e-4 cosine, 5 epochs, batch=1×8=8, max_length=4096
+精度: fp16 (T4 不支持 bf16)
+输出: /content/output/v7-20260717-055145/checkpoint-100/
+训练时间: ~8.5 分钟 (140 steps)
+
+===== 完整 pip 安装命令 / Reproduce =====
+pip install ms-swift==4.4.1 \
+  "transformers>=5.0" \
+  peft==0.19.1 \
+  datasets==3.1.0 \
+  accelerate==1.14.0 \
+  "torchao>=0.16.0"
