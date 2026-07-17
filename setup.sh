@@ -1,5 +1,5 @@
 #!/bin/bash
-mkdir gemma3-270mpip sh output
+mkdir gemma3-270m output
 
 pip install ms-swift
 
