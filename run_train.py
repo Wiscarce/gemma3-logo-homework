@@ -36,7 +36,7 @@ def build_args() -> SftArguments:
         # ---- 训练超参 (T4 15GB 适配) ----
         learning_rate=2e-4,
         lr_scheduler_type="cosine",
-        warmup_ratio=0.05,
+        warmup_ratio=0.05,                            # transformers 5.x 推荐 warmup_steps
         num_train_epochs=5,
         per_device_train_batch_size=1,      # T4 15GB 保守值
         per_device_eval_batch_size=1,
@@ -48,7 +48,8 @@ def build_args() -> SftArguments:
         max_grad_norm=1.0,
 
         # ---- 精度: T4 只支持 fp16, 不支持 bf16 ----
-        torch_dtype="float16",
+        # transformers 5.x: torch_dtype → dtype
+        dtype="float16",
 
         # ---- 保存 & 日志 ----
         output_dir="/content/output",

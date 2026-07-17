@@ -19,7 +19,7 @@
   "optim": "adamw_torch",
   "weight_decay": 0.01,
   "max_grad_norm": 1.0,
-  "torch_dtype": "float16",
+  "dtype": "float16",
   "output_dir": "/content/output",
   "logging_steps": 10,
   "save_steps": 50,
