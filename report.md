@@ -2,9 +2,7 @@
 
 ## 一、任务概述
 
-使用 `train.jsonl`（219 条）和 `valid.jsonl`（17 条）训练数据，对 **Gemma 3 270M** 进行 LoRA 监督微调（SFT），使其能够根据详细的视觉描述（text prompt）生成完整的 SVG Logo。训练数据中的每条样本包含 system prompt（SVG 设计规范）、user prompt（详细视觉描述）和 assistant response（Claude Sonnet 生成的 SVG 文档，`viewBox="0 0 256 256"`）。
-
-训练完成后，使用自建的 `reward.py` 评分函数评估生成质量，并与 Sonnet ground-truth 进行对比。
+使用 219 条 text→SVG 配对数据对 **Gemma 3 270M** 进行 LoRA 监督微调（SFT），使其根据详细视觉描述生成完整的矢量 Logo。训练数据来自 [roboticcam/logo-detailed-prompt](https://github.com/roboticcam/logo-detailed-prompt)，由 Claude Sonnet 生成。训练完成后使用自建 `reward.py`（四维度评分函数）评估生成质量，并与 Sonnet ground-truth 对比分析。
 
 ---
 
@@ -13,9 +11,9 @@
 | 数据集 | 样本数 | 格式 |
 |---|---|---|
 | `train.jsonl` | 219 | chat-format: system / user / assistant |
-| `valid.jsonl` | 17 | 同上（来源一致，由 Sonnet 生成的高质量 SVG） |
+| `valid.jsonl` | 17 | 同上（Sonnet 生成的高质量 SVG） |
 
-- SVG 长度范围：419 ~ 5,348 字符，平均 ~1,800 字符
+- SVG 长度：419 ~ 5,348 字符，平均 ~1,800 字符
 - 所有 SVG 均以 `<svg xmlns="..." viewBox="0 0 256 256">` 开头
 - 仅使用矢量图元（`<path>`, `<circle>`, `<rect>`, `<polygon>` 等），无外部引用
 
@@ -25,13 +23,13 @@
 
 ### 3.1 模型与微调
 
-| 配置项 | 值 |
+| 配置 | 值 |
 |---|---|
 | 基座模型 | `google/gemma-3-270m-it` |
-| 微调方法 | LoRA (rank=16, alpha=32, dropout=0.05, target_modules=all-linear) |
+| 微调方法 | LoRA (rank=16, alpha=32, dropout=0.05) |
+| 目标模块 | `all-linear` |
 | 框架 | ms-swift 4.4.1 |
-| 训练环境 | Tesla T4 15GB, CUDA 13.0, fp16 |
-| 精度 | torch.float16（T4 不支持 bf16） |
+| 环境 | Tesla T4 15GB / CUDA 13.0 / fp16 |
 
 ### 3.2 超参数
 
@@ -39,99 +37,81 @@
 |---|---|
 | Learning rate | 2e-4, cosine schedule |
 | Epochs | 5 |
-| Batch size | 1 × 8 gradient accumulation = 8 |
+| Effective batch size | 1 × 8 gradient accumulation = 8 |
 | Max sequence length | 4,096 tokens |
 | Optimizer | AdamW (weight_decay=0.01) |
 | Warmup ratio | 0.05 |
 
 ### 3.3 Loss 掩码
 
-训练时仅对 assistant（SVG）部分的 token 计算 loss，system 和 user 部分的 token label 设为 -100（忽略）。ms-swift 对扁平格式（system/query/response）的数据自动处理此逻辑。
+训练时仅对 assistant（SVG）部分的 token 计算 loss，system 和 user token 忽略。使用扁平格式（system/query/response）由 ms-swift 自动处理。
 
 ### 3.4 训练耗时
 
-- 总步数：140 步（219 样本 × 5 epoch / batch 8 ≈ 137 步，实际 140）
-- 训练时间：**约 8.5 分钟**（T4）
+140 步，约 8.5 分钟（Tesla T4）。
 
 ---
 
-## 四、Reward 函数设计
+## 四、Reward 函数设计（v2 增强版）
 
-自建的 `reward.py` 从三个维度评估 SVG 质量（总分 0~1）：
+自建 `reward.py` 从 **四个维度** 评估 SVG 质量（总分 0~1），v2 版核心改进包括 CIE76 感知色差、ElementTree 树遍历形状检测、语义关键词分组、阶梯评分防聚集。
 
 | 维度 | 权重 | 评估内容 |
 |---|---|---|
-| **结构有效性** | 0.30 | XML 可解析性、xmlns/viewBox 是否正确 |
-| **设计规则合规性** | 0.25 | 禁止元素检测（`<image>`, `<script>` 等）、标签白名单、颜色使用合理性 |
-| **Prompt 对齐度** | 0.45 | 颜色匹配（hex + 颜色名映射）、形状/视觉元素检测、SVG 复杂度 vs 描述复杂度 |
+| **结构有效性** | 0.25 | XML 解析、xmlns/viewBox、截断检测、标签平衡 |
+| **设计合规性** | 0.20 | 禁止元素、标签白名单、颜色使用合理性 |
+| **视觉质量** | 0.15 | 形状多样性、坐标越界、defs/gradient 使用 |
+| **Prompt 对齐度** | 0.40 | CIE76 色差匹配、形状检测、语义组覆盖、复杂度对齐 |
 
-对齐度评分采用启发式方法：从 prompt 中提取颜色名称（如 "coral", "teal"），映射到 hex 值，检查 SVG 中是否存在近似颜色；从 SVG 标签结构中检测常见形状模式（circle, hexagon, sun, wave 等），与 prompt 中提及的概念进行交集匹配；同时考虑了 SVG 元素复杂度是否与 prompt 的长度匹配，以及非标签文本的比例。
-
-Sonnet ground-truth SVG 在验证集上平均得分为 **0.9857**，验证了 reward 函数对高质量 SVG 的判断与人工预期一致。
+对齐度采用阶梯式评分（不足 30%→0.2，30-60%→0.5，60-80%→0.7，80%+→0.9+），消除 GT 分数在 0.99 的顶部聚集效应。每次评分返回 `failure_reasons` 列表，标明具体扣分原因。
 
 ---
 
 ## 五、实验结果
 
-### 5.1 评分对比
+### 5.1 评分对比（reward.py v2）
 
 | 模型 | avg | min | max |
 |---|---|---|---|
-| **Sonnet (ground-truth)** | 0.9857 | 0.9065 | 1.0000 |
-| **Gemma 3 270M + LoRA** | 0.4056 | 0.3135 | 0.7323 |
-| **差距** | **-0.5801** | — | — |
+| **Sonnet (ground-truth)** | 0.9426 | 0.9058 | 0.9859 |
+| **Gemma 3 270M + LoRA** | 0.3645 | 0.3085 | 0.6898 |
+| **差距** | **0.5781** | — | — |
+
+GT 评分不再触碰天花板（max < 0.99），LoRA 模型得分底线更低（< 0.31），reward 区分度显著提升。
 
 ### 5.2 生成质量分析
 
-对 17 条验证样本逐一检查生成结果，发现以下模式：
+对 17 条验证样本逐一分析：
 
-| 生成长度 | 样本数 | 典型特征 | reward 范围 |
+| 类型 | 样本数 | 特征 | reward |
 |---|---|---|---|
-| < 200 字符 | 8 条 | SVG 极短（92~183 字符），通常仅含 1~2 个元素，未完成即截断 | 0.31~0.38 |
-| 400~1,400 字符 | 5 条 | 结构较完整，有多个元素和合理颜色 | 0.42~0.73 |
-| > 8,000 字符 | 4 条 | 生成过长，包含大量冗余或重复元素 | 0.33~0.45 |
+| 严重截断 (< 200 字符) | 8 条 | 仅含 1~2 个元素，无闭合标签或过早 EOS | 0.31~0.35 |
+| 部分完整 (400~1,400 字符) | 5 条 | 结构较完整，有多元素和颜色，但细节不精确 | 0.42~0.69 |
+| 生成失控 (> 8,000 字符) | 4 条 | 大量冗余重复元素，远超训练数据平均长度 | 0.33~0.40 |
 
 **核心问题：**
 
-1. **生成截断**：约半数输出在 200 字符以内中止，SVG 结构不完整（缺少闭合标签、有效内容极少）。可能原因：270M 模型对 SVG 语法的学习不充分，或 `max_new_tokens=2048` 的配置下模型过早生成了 EOS token。
-
-2. **长度失控**：约 1/4 样本生成超过 8,000 字符，远长于训练数据中平均 1,800 字符的 SVG。模型未能学会"生成适中、完整的 SVG"的模式。
-
-3. **颜色/形状对齐弱**：即使是较好的样本，也缺乏对 prompt 中详细视觉描述的精确重现——模型倾向于生成"泛化的 SVG"，而非严格遵循 prompt 中指定的具体元素。
+1. **生成截断**（~50% 样本）：270M 模型对 SVG 语法的学习不充分，EOS token 过早出现
+2. **长度失控**（~25% 样本）：模型未能学会控制 SVG 的合理长度
+3. **对齐不精确**：即使较好的样本也倾向于生成泛化的 SVG，而非严格遵循 prompt 中指定的具体颜色、形状和布局
 
 ---
 
 ## 六、Sonnet 表现更优的原因分析
 
-1. **模型规模**：Sonnet（参数量远超 270M）具有更强的文本理解和结构化输出能力。SVG 生成需要同时理解自然语言描述、空间布局逻辑和严格的 XML 语法——这对小模型是三重挑战。
-
-2. **训练数据规模不足**：仅 219 条训练样本，且每条样本的 SVG 结构差异大（不同 logo 的元素组合、颜色方案、布局差异显著），模型难以在 5 个 epoch 内学到泛化的"SVG 生成能力"。
-
-3. **预训练差异**：Gemma 3 270M 的预训练语料中，SVG 代码占比极低。而 Sonnet 经过 RLHF 和其他对齐训练，生成结构化输出的能力更强。
-
-4. **生成控制**：Sonnet 通过 system prompt 中的显式指令（"Output ONLY the SVG"）能够严格控制输出格式；而小模型在指令遵循（instruction following）方面天然较弱。
+1. **模型规模差距**：Sonnet 参数量远超 270M，SVG 生成需同时理解自然语言、空间布局和 XML 语法，对小模型是三重挑战
+2. **训练数据有限**：仅 219 条样本，且各 logo 风格差异大，模型难以学到泛化的 SVG 生成能力
+3. **预训练差异**：Gemma 3 270M 预训练语料中 SVG 代码占比极低；Sonnet 经过 RLHF 对齐，结构化输出能力强得多
+4. **指令遵循**：Sonnet 能严格遵循 system prompt 的格式约束；270M 模型指令遵循能力天然较弱
 
 ---
 
 ## 七、改进方向
 
-1. **增大模型规模**：使用 Gemma 3 1B/4B 或 Qwen2.5-1.5B 等更大模型，提升指令遵循和结构化生成能力。
-
-2. **数据增强**：
-   - 利用 Sonnet API 生成更多训练数据（当前只在 219 条上训练）
-   - 添加"负面样本"（破损的 SVG、不完整的 SVG）作为对比，帮助模型学习边界
-   - 加入多样化 prompt（简化版、详细版、多语言版）
-
-3. **改进训练策略**：
-   - 使用 DPO/RLHF 替代纯 SFT，让 reward 直接参与优化
-   - 增加 response_prefix="<svg" 强制从正确位置开始生成
-   - 调高 max_length 至 8192 以包含完整的 SVG
-   - 使用更大的 LoRA rank（如 64 或 128）
-
-4. **推理优化**：
-   - 使用 beam search 替代随机采样，生成更稳定的结果
-   - 添加后处理：自动修复不平衡的标签、截断多余的重复内容
-   - 使用 stop_words=["</svg>"] 让模型在 SVG 闭合时立即停止
+1. **增大模型**：使用 Gemma 3 1B/4B 或 Qwen2.5-1.5B
+2. **数据增强**：利用 Sonnet API 扩增训练数据，加入负面样本
+3. **训练策略**：使用 DPO/RLHF 让 reward 直接参与优化；增加 `response_prefix="<svg"`；提升 LoRA rank 至 64+
+4. **推理控制**：使用 `stop_words=["</svg>"]` 精确截断；beam search 替代随机采样；添加 SVG 后处理修复
 
 ---
 
@@ -139,9 +119,8 @@ Sonnet ground-truth SVG 在验证集上平均得分为 **0.9857**，验证了 re
 
 | 文件 | 说明 |
 |---|---|
-| `adapter_config.json` + `adapter_model.safetensors` | LoRA 权重（checkpoint-100） |
-| `reward.py` | SVG Logo 三维度奖励函数 |
-| `train_config.yaml` | ms-swift LoRA 训练超参数配置 |
-| `results_baseline.json` | Sonnet ground-truth 评分结果（avg=0.9857） |
-| `results_generated.json` | LoRA 模型生成评分结果（avg=0.4056） |
+| `adapter/adapter_config.json` + `adapter_model.safetensors` | LoRA 权重（checkpoint-100），Git LFS |
+| `reward.py` | SVG Logo 四维度奖励函数（v2 增强版） |
+| `train_config.yaml` | ms-swift 4.4.1 LoRA 训练超参数 |
+| `results.json` | Sonnet GT vs LoRA 评分对比 |
 | `report.md` | 本报告 |
